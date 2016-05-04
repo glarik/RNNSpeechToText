@@ -1,10 +1,11 @@
 require 'nn'
 require 'cunn'
 require 'cutorch'
+require 'csvigo'
 
-trainset = torch.load('../data/spok_nums_v2.t7')
+dataset = torch.load('../data/spok_nums_v2.t7')
 
--- torch.save('./data/spok_nums_v2.t7',trainset)
+-- torch.save('./data/spok_nums_v2.t7',dataset)
 
 net = nn.Sequential()
 
@@ -24,49 +25,44 @@ net:add(nn.LogSoftMax())
 
 net = net:cuda()
 
--- net = torch.load('../data/spoknums_tnet_20x.t7')
-
 print('Simple feedforward word classification net:\n' .. net:__tostring());
 
 classes = {'0','1','2','3','4','5','6','7','8','9'}
 
-function trainset:size()
+function dataset:size()
   return self.data:size(1)
 end
 
 --randomize data
-order = torch.randperm(trainset:size())
-tempdat = trainset.data
-templabel = trainset.label
+order = torch.randperm(dataset:size())
+tempdat = dataset.data
+templabel = dataset.label
 
-for i=1,trainset:size() do
-  trainset.data[i] = tempdat[order[i]]
-  trainset.label[i] = templabel[order[i]]
+for i=1,dataset:size() do
+  dataset.data[i] = tempdat[order[i]]
+  dataset.label[i] = templabel[order[i]]
 end
 
-trainset.data = trainset.data:double()
+dataset.data = dataset.data:double()
 
 mean = {} -- store the mean, to normalize the test set in the future
 stdv  = {} -- store the standard-deviation for the future
 for i=1,64 do
-    mean[i] = trainset.data[{ {}, {i}, {} }]:mean() -- mean estimation
+    mean[i] = dataset.data[{ {}, {i}, {} }]:mean() -- mean estimation
     -- print('Channel ' .. i .. ', Mean: ' .. mean[i])
-    trainset.data[{ {}, {i}, {} }]:add(-mean[i]) -- mean subtraction
+    dataset.data[{ {}, {i}, {} }]:add(-mean[i]) -- mean subtraction
 
-    stdv[i] = trainset.data[{ {}, {i}, {}  }]:std() -- std estimation
+    stdv[i] = dataset.data[{ {}, {i}, {}  }]:std() -- std estimation
     -- print('Channel ' .. i .. ', Standard Deviation: ' .. stdv[i])
-    trainset.data[{ {}, {i}, {}}]:div(stdv[i]) -- std scaling
+    dataset.data[{ {}, {i}, {}}]:div(stdv[i]) -- std scaling
 end
 
 -- required for training functions
-setmetatable(trainset,
+setmetatable(dataset,
     {__index = function(t, i)
                     return {t.data[i], t.label[i]}
                 end}
 );
-
--- trainset.label = trainset.label:cuda()
--- trainset.data = trainset.data:cuda()
 
 criterion = nn.ClassNLLCriterion()
 criterion = criterion:cuda()
@@ -75,63 +71,76 @@ trainer = nn.StochasticGradient(net, criterion)
 trainer.learningRate = 0.001
 trainer.maxIteration = 5 -- just do 5 epochs of training.
 
-t1 = {}
-t1.data = trainset.data:sub(1,2500)
-t1.label = trainset.label:sub(1,2500)
-function t1:size()
-  return self.data:size(1)
+-- takes percent of dataset to use as training (e.g. 90)
+function trainTest(train_percent)
+  if (train_percent >= 1) then
+    train_percent = train_percent/100
+  end
+
+  last_index = math.floor(dataset:size()*train_percent)
+
+  -- create training dataset of size train_percent % of dataset size
+  trainset = {}
+  trainset.data = dataset.data:sub(1,last_index)
+  trainset.label = dataset.label:sub(1,last_index)
+  function trainset:size()
+    return self.data:size(1)
+  end
+  setmetatable(trainset,
+      {__index = function(t, i)
+                      return {t.data[i], t.label[i]}
+                  end}
+  );
+
+  -- create test dataset of size remaining % of dataset size
+  testset = {}
+  testset.data = dataset.data:sub(last_index+1,dataset:size())
+  testset.label = dataset.label:sub(last_index+1,dataset:size())
+  function testset:size()
+    return self.data:size(1)
+  end
+  setmetatable(testset,
+      {__index = function(t, i)
+                      return {t.data[i], t.label[i]}
+                  end}
+  );
+
+  -- google stochastic gradient parameters!!
+  trainer.maxIteration = 25;
+
+  -- get % correct after each iteration
+  pCorrect = {{}}
+  function trainer.hookIteration()
+      pCorrect[1][i] = getCorrect()
+  end
+
+  train()
+
+  csvigo.save('./trainon'..train_percent..'_pCorrect',pCorrect)
+
+  confmat = getConfMat()
+
+  outputCSV('./trainon'..train_percent..'_confmat',confmat)
 end
-setmetatable(t1,
-    {__index = function(t, i)
-                    return {t.data[i], t.label[i]}
-                end}
-);
-
-
-t2 = {}
-t2.data = trainset.data:sub(2501,trainset:size())
-t2.label = trainset.label:sub(2501,trainset:size())
-function t2:size()
-  return self.data:size(1)
-end
-setmetatable(t2,
-    {__index = function(t, i)
-                    return {t.data[i], t.label[i]}
-                end}
-);
-
--- function train90test10()
---
--- end
 
 function train()
-  t1.data = t1.data:cuda()
-  t1.label = t1.label:cuda()
-  trainer:train(t1)
-  t1.data = t1.data:double()
-  t1.label = t1.label:byte()
-
-  -- t2.data = t2.data:cuda()
-  -- t2.label = t2.label:cuda()
-  -- trainer:train(t2)
-  -- t2.data = t2.data:double()
-  -- t2.label = t2.label:byte()
+  trainset.data = trainset.data:cuda()
+  trainset.label = trainset.label:cuda()
+  trainer:train(trainset)
+  trainset.data = trainset.data:double()
+  trainset.label = trainset.label:byte()
 end
 
 function getCorrect()
-  -- t1.data = t1.data:cuda()
-  -- t1.label = t1.label:cuda()
-  -- correct = testCorrect(t1)
-  -- t1.data = t1.data:double()
-  -- t1.label = t1.label:byte()
+  testset.data = testset.data:cuda()
+  testset.label = testset.label:cuda()
+  correct = testCorrect(testset)
+  testset.data = testset.data:double()
+  testset.label = testset.label:byte()
 
-  t2.data = t2.data:cuda()
-  t2.label = t2.label:cuda()
-  correct = testCorrect(t2)
-  t2.data = t2.data:double()
-  t2.label = t2.label:byte()
+  return 100*correct/testset:size()
 
-  print(correct .. " correct out of "..t2:size().." = "..100*correct/t2:size().."%")
+  -- print(correct .. " correct out of "..testset:size().." = "..100*correct/testset:size().."%")
 end
 
 -- returns # correct
@@ -169,21 +178,33 @@ function testClassPerformance(set)
 end
 
 function getConfMat()
-  -- t1.data = t1.data:cuda()
-  -- t1.label = t1.label:cuda()
-  -- confmat = confMat(t1)
-  -- t1.data = t1.data:double()
-  -- t1.label = t1.label:byte()
+  testset.data = testset.data:cuda()
+  testset.label = testset.label:cuda()
+  confmat = confMat(testset)
+  testset.data = testset.data:double()
+  testset.label = testset.label:byte()
 
-  t2.data = t2.data:cuda()
-  t2.label = t2.label:cuda()
-  confmat = confMat(t2)
-  t2.data = t2.data:double()
-  t2.label = t2.label:byte()
+  return confmat
 
-  print("X axis: Predicted Values")
-  print("Y axis: Actual Values")
-  print(confmat)
+  -- print("X axis: Predicted Values")
+  -- print("Y axis: Actual Values")
+  -- print(confmat)
+end
+
+function outputCSV(filepath,matrix)
+  local out = assert(io.open(filepath, "w"))
+
+  splitter = ','
+
+  for i=1,matrix:size(1) do
+    for j=1,matrix:size(2) do
+      out:write(matrix[i][j])
+      if (j ~= matrix:size(2)) then
+        out:write(splitter)
+      end
+    end
+    out:write('\n')
+  end
 end
 
 -- Returns confusion matrix for loaded network on loaded dataset
