@@ -1,4 +1,5 @@
 ipynbs/
+.ipynb_checkpoints/
 data/yesnomaybe/
 *.t7
 *.ipynb
