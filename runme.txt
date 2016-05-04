@@ -1,0 +1,6 @@
+1. Clone repo from github and navigate to RNNSpeechToText directory in terminal
+2. type 'th' into command prompt, brings up torch repl
+3. type "require 'nn.lua'"
+4. to train on training dataset, type 'train()'
+5. To test on test dataset, type 'testCorrect()'
+
