@@ -110,8 +110,10 @@ function trainTest(train_percent)
 
   -- get % correct after each iteration
   pCorrect = {{}}
+  i=1
   function trainer.hookIteration()
       pCorrect[1][i] = getCorrect()
+      i = i+1
   end
 
   train()
