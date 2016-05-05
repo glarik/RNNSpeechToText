@@ -92,20 +92,22 @@ function trainTest(train_percent)
                   end}
   );
 
-  if (last_index < dataset:size()) then
-    -- create test dataset of size remaining % of dataset size
-    testset = {}
-    testset.data = dataset.data:sub(last_index+1,dataset:size())
-    testset.label = dataset.label:sub(last_index+1,dataset:size())
-    function testset:size()
-      return self.data:size(1)
-    end
-    setmetatable(testset,
-        {__index = function(t, i)
-                        return {t.data[i], t.label[i]}
-                    end}
-    );
+  if (last_index >= dataset:size()) then
+    last_index = 0
   end
+  
+  -- create test dataset of size remaining % of dataset size
+  testset = {}
+  testset.data = dataset.data:sub(last_index+1,dataset:size())
+  testset.label = dataset.label:sub(last_index+1,dataset:size())
+  function testset:size()
+    return self.data:size(1)
+  end
+  setmetatable(testset,
+      {__index = function(t, i)
+                      return {t.data[i], t.label[i]}
+                  end}
+  );
 
   -- google stochastic gradient parameters!!
   trainer.maxIteration = 25;
