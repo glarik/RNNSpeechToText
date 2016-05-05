@@ -194,7 +194,7 @@ function getConfMat()
 end
 
 function outputCSV(filepath,matrix)
-  local out = assert(io.open(filepath, "w"))
+  io.output(filepath, "w")
 
   splitter = ','
 
@@ -202,10 +202,10 @@ function outputCSV(filepath,matrix)
     for j=1,matrix:size(2) do
       out:write(matrix[i][j])
       if (j ~= matrix:size(2)) then
-        out:write(splitter)
+        io:write(splitter)
       end
     end
-    out:write('\n')
+    io:write('\n')
   end
 end
 
