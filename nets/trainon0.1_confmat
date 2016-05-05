@@ -1,0 +1,30 @@
+0,0,1,2,3,4,5,6,7,8,9
+0,27,5,4,0,11,0,0,13,0,0
+1,0,125,6,0,4,13,0,0,0,3
+2,15,24,139,0,19,10,9,17,20,11
+3,20,115,51,33,0,75,2,11,0,0
+4,18,166,20,7,153,16,5,21,0,3
+5,9,141,18,25,5,214,13,36,13,40
+6,0,7,21,0,0,6,223,35,0,1
+7,44,5,83,1,0,18,37,154,0,0
+8,0,79,14,0,8,8,8,0,239,76
+9,0,18,9,4,0,46,2,0,29,56
+rent error = 0.67551721848993[0m	
+[0m# current error = 0.63717620303998[0m	
+[0m# current error = 0.60124849152361[0m	
+[0m# current error = 0.56412464405736[0m	
+[0m# current error = 0.7385879414968[0m	
+[0m# current error = 0.65362300972144[0m	
+[0m# current error = 0.51390104046744[0m	
+[0m# current error = 0.44554432398743[0m	
+[0m# current error = 0.41139395280272[0m	
+[0m# current error = 0.41650475128594[0m	
+[0m# current error = 0.40073693104279[0m	
+[0m# current error = 0.60556130849908[0m	
+[0m# current error = 0.54308799456837[0m	
+[0m# current error = 0.3511562456942[0m	
+[0m# current error = 0.28598510327502[0m	
+[0m# StochasticGradient: you have reached the maximum number of iterations[0m	
+[0m# training error = 0.28598510327502[0m	
+[0m<csv>[0m	[0mwriting to file: ./trainon0.2_pCorrect[0m	
+[0m<csv>[0m	[0mwriting done[0m	
