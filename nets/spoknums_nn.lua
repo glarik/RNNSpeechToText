@@ -118,11 +118,11 @@ function trainTest(train_percent)
 
   train()
 
-  csvigo.save('./trainon'..train_percent..'_pCorrect',pCorrect)
+  csvigo.save('./trainon' .. train_percent .. '_pCorrect',pCorrect)
 
   confmat = getConfMat()
 
-  outputCSV('./trainon'..train_percent..'_confmat',confmat)
+  outputCSV('./trainon' .. train_percent .. '_confmat',confmat)
 end
 
 function train()
@@ -194,19 +194,21 @@ function getConfMat()
 end
 
 function outputCSV(filepath,matrix)
-  io.output(filepath)
+  local out = assert(io.open(filepath,"w"))
 
   splitter = ','
 
   for i=1,matrix:size(1) do
     for j=1,matrix:size(2) do
-      io.write(matrix[i][j])
+      out:write(tostring(matrix[i][j]))
       if (j ~= matrix:size(2)) then
-        io.write(splitter)
+        out:write(splitter)
       end
     end
-    io.write('\n')
+    out:write('\n')
   end
+
+  assert(out:close())
 end
 
 -- Returns confusion matrix for loaded network on loaded dataset
