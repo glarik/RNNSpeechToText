@@ -73,7 +73,7 @@ trainer.maxIteration = 5 -- just do 5 epochs of training.
 
 -- takes percent of dataset to use as training (e.g. 90)
 function trainTest(train_percent)
-  if (train_percent >= 1) then
+  if (train_percent > 1) then
     train_percent = train_percent/100
   end
 
@@ -92,18 +92,20 @@ function trainTest(train_percent)
                   end}
   );
 
-  -- create test dataset of size remaining % of dataset size
-  testset = {}
-  testset.data = dataset.data:sub(last_index+1,dataset:size())
-  testset.label = dataset.label:sub(last_index+1,dataset:size())
-  function testset:size()
-    return self.data:size(1)
+  if (last_index < dataset:size()) then
+    -- create test dataset of size remaining % of dataset size
+    testset = {}
+    testset.data = dataset.data:sub(last_index+1,dataset:size())
+    testset.label = dataset.label:sub(last_index+1,dataset:size())
+    function testset:size()
+      return self.data:size(1)
+    end
+    setmetatable(testset,
+        {__index = function(t, i)
+                        return {t.data[i], t.label[i]}
+                    end}
+    );
   end
-  setmetatable(testset,
-      {__index = function(t, i)
-                      return {t.data[i], t.label[i]}
-                  end}
-  );
 
   -- google stochastic gradient parameters!!
   trainer.maxIteration = 25;
