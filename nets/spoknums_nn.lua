@@ -200,12 +200,12 @@ function outputCSV(filepath,matrix)
 
   for i=1,matrix:size(1) do
     for j=1,matrix:size(2) do
-      io:write(matrix[i][j])
+      io.write(matrix[i][j])
       if (j ~= matrix:size(2)) then
-        io:write(splitter)
+        io.write(splitter)
       end
     end
-    io:write('\n')
+    io.write('\n')
   end
 end
 
