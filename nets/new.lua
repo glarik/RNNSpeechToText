@@ -2,10 +2,9 @@
 clean it up and make a network which will classify the n
 words in the set.
 
-we will start with 'yes' 'no' 'maybe'
 ]]
 
-cuda = false
+cuda = true
 
 require 'nn'
 require 'csvigo'
@@ -19,13 +18,25 @@ dataset = nil
 trainset = {}
 classes = {}
 
+help = [[
 
+Usage: (If running from Torch repl ignore the 'th' at the beginning)
+-> th path/to/thisfile.lua path/to/dataset.t7
 
+]]
+
+-- parse command line args
+if arg[1] and arg[1]~="--help" and arg[1]~="-h" then
+  datafile = arg[1]
+else
+  io.write(help)
+  return
+end
 
 -- load training and testing data sets
 -- TODO: make it take raw tensor data, not cleaned up
 -- TODO: Also maybe have it use command line args
-dataset = torch.load('../data/spok_nums_v2.t7')
+dataset = torch.load(datafile)
 
 
 --[[Normalize data and labels]]
@@ -69,13 +80,18 @@ setmetatable(dataset,
 
 --[[Analyze data. Create table of unique labels]]
 
+t = {}
 for i=1,dataset:size() do
-  if not classes[dataset.label[i]] then
-    classes.insert(dataset.label[i])
+  if not t[dataset.label[i]] then
+    t[dataset.label[i]] = true
   end
 end
 
-print(classes)
+for label in pairs(t) do table.insert(classes, label) end
+table.sort(classes)
+print("Labels: ")
+for n,l in ipairs(classes) do io.write(l,', ') end
+io.write('\n\n')
 
 --[[Create NN based on number of classes]]
 
@@ -153,8 +169,9 @@ function getCorrect()
 end
 
 function run()
-  -- we will splipt the dataset in half in order to avoid taking up too much space on the GPU
+  -- we will split the dataset in half in order to avoid taking up too much space on the GPU
   middle = math.floor(dataset:size()*0.5)
+  --middle = 100
 
   trainset = {}
   trainset.data = dataset.data:sub(1,middle)
@@ -167,6 +184,9 @@ function run()
                       return {t.data[i], t.label[i]}
                   end}
   );  
+
+  print('Training on first half of dataset')
+  testset = trainset
 
   train() -- train on first half
 
@@ -182,6 +202,8 @@ function run()
                   end}
   );
 
+
+  io.write('\nTraining on second half of dataset...\n')
   train() --train on second half
 
 
@@ -249,19 +271,21 @@ end
 
 -- returns # correct
 function testCorrect(set, n)
-  if not n then
-    n=net
-  end
+  if not n then n=net end
+  if not set then set = dataset end
 
   correct = 0
-  for i=1,set:size() do
+  for i=1, set:size() do
     local groundtruth = set.label[i]
-    local prediction = n:forward(set.data[i])
+    if cuda then val=set.data[i]:cuda() else val=set.data[i] end
+    local prediction = net:forward(val)
     local confidences, indices = torch.sort(prediction, true)  -- true means sort in descending order
     if groundtruth == indices[1] then
       correct = correct + 1
     end
   end
+
+  io.write(string.format("%.2f",correct/set:size()*100),'% correct. (',correct,'/',set:size(),')\n')
   return correct
 end
 
